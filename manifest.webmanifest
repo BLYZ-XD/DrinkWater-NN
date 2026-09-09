@@ -1,7 +1,7 @@
 {
-  "name": "工作台 · 喝水监督打卡",
-  "short_name": "喝水打卡",
-  "description": "个人工作台：每日喝水目标打卡、闹钟提醒、连胜与趋势统计。手机和电脑都能用。",
+  "name": "nn健康卫士 · 喝水监督",
+  "short_name": "nn健康卫士",
+  "description": "nn健康卫士：每日喝水目标打卡、闹钟提醒、连胜与趋势统计。手机和电脑都能用。",
   "lang": "zh-CN",
   "dir": "ltr",
   "start_url": "./index.html",

@@ -1,5 +1,5 @@
-/* 工作台 PWA Service Worker：网络优先 + 缓存兜底（保证更新即时生效、断网可用） */
-const VERSION = 'ww-v6';
+/* nn健康卫士 PWA Service Worker：网络优先 + 缓存兜底（保证更新即时生效、断网可用） */
+const VERSION = 'ww-v7';
 const SHELL = [
   './',
   './index.html',
