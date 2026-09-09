@@ -1,5 +1,5 @@
-/* 工作台 PWA Service Worker：离线缓存应用外壳 */
-const VERSION = 'ww-v4';
+/* 工作台 PWA Service Worker：网络优先 + 缓存兜底（保证更新即时生效、断网可用） */
+const VERSION = 'ww-v6';
 const SHELL = [
   './',
   './index.html',
@@ -35,17 +35,20 @@ self.addEventListener('fetch', e => {
   if (url.origin !== location.origin) return;
 
   e.respondWith(
-    caches.match(e.request).then(hit => {
-      if (hit) return hit;
-      return fetch(e.request).then(res => {
+    // 1) 先走网络：拿到新文件就更新缓存（旧缓存不会再“卡住”新版本）
+    fetch(e.request).then(res => {
+      if (res && res.ok) {
         const copy = res.clone();
-        if (res.ok && (url.pathname.endsWith('.js') || url.pathname.endsWith('.css') ||
-            url.pathname.endsWith('.png') || url.pathname.endsWith('.webmanifest') ||
-            url.pathname.endsWith('.html') || url.pathname === '/')) {
-          caches.open(VERSION).then(c => c.put(e.request, copy));
-        }
-        return res;
-      });
-    }).catch(() => caches.match('./index.html'))
+        caches.open(VERSION).then(c => c.put(e.request, copy));
+      }
+      return res;
+    }).catch(() =>
+      // 2) 断网时用缓存兜底
+      caches.match(e.request).then(hit => {
+        if (hit) return hit;
+        // 导航请求兜底到首页
+        return e.request.mode === 'navigate' ? caches.match('./index.html') : undefined;
+      })
+    )
   );
 });
