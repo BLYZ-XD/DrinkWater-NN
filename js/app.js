@@ -1,6 +1,8 @@
 /* ================= 主入口：导航 / 调度 / 提醒 ================= */
 'use strict';
 
+const APP_VERSION = 'v1.3.2'; // 页面加载后显示在顶栏/右下角，用于判断是否最新代码
+
 const App = (function () {
   let currentView = 'home';
 
@@ -16,6 +18,19 @@ const App = (function () {
     if (view === 'home') Home.render();
   }
   const $id = id => document.getElementById(id);
+
+  /* ---------- 全局错误提示（便于发现问题） ---------- */
+  function wireGlobalErrors() {
+    window.addEventListener('error', e => {
+      try { toast('⚠️ 页面出错：' + (e.message || '未知错误'), 'warn', 6000); } catch (_) { }
+    });
+    window.addEventListener('unhandledrejection', e => {
+      try {
+        const r = e.reason;
+        toast('⚠️ 运行出错：' + (r && r.message ? r.message : String(r)), 'warn', 6000);
+      } catch (_) { }
+    });
+  }
 
   /* ---------- 闹钟横幅 ---------- */
   const snoozeQueue = []; // {at:number, t:'HH:MM'}
@@ -131,12 +146,63 @@ const App = (function () {
     });
   }
 
+  /* ---------- 自检模式：?selftest=1 时自动点击打卡按钮并把结果写入标题（便于无头验证/排查） ---------- */
+  function selfTest() {
+    const out = [];
+    try {
+      const add = $id('addCupBtn'), half = $id('addHalfBtn'), undo = $id('undoBtn'), gear = $id('waterSettingsBtn');
+      if (!add || !half || !undo || !gear) throw new Error('按钮不存在，事件未注册?');
+      show('water');                                          // 先切到喝水视图，让 DOM 实时渲染
+      add.click(); add.click(); half.click();                 // +1 +1 +半杯 = 2.5 杯
+      out.push('statMl=' + $id('statMl').textContent);        // 期望 625 ml
+      out.push('ring=' + $id('ringTotal').textContent);       // 期望 2.5 / 8 杯
+      out.push('tl=' + document.querySelectorAll('.tl-item').length); // 期望 3
+      undo.click();
+      out.push('afterUndo=' + document.querySelectorAll('.tl-item').length); // 期望 2
+      gear.click();
+      out.push('modalOpen=' + !$id('settingsModal').classList.contains('hidden')); // 期望 true
+      out.push('chip=' + $id('appVerChip').textContent);
+      document.title = 'SELFTEST-OK | ' + out.join(' | ');
+    } catch (e) {
+      document.title = 'SELFTEST-FAIL | ' + (e && e.message ? e.message : e);
+    }
+  }
+
   /* ---------- 启动 ---------- */
+  function resetNow() {
+    // 网址带 ?reset=1 时：注销所有 Service Worker + 清空缓存，然后干净地重新加载
+    const jobs = [];
+    if ('serviceWorker' in navigator) {
+      jobs.push(navigator.serviceWorker.getRegistrations().then(regs =>
+        Promise.all(regs.map(r => r.unregister()))
+      ));
+    }
+    if (window.caches) {
+      jobs.push(caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))));
+    }
+    Promise.all(jobs).then(() => {
+      sessionStorage.removeItem('ww_reloaded');
+      location.replace(location.pathname); // 去掉 ?reset=1 后重新加载
+    });
+  }
+
   function boot() {
+    if (location.search.indexOf('reset=1') >= 0) { resetNow(); return; }
+    // 顶栏显示当前代码版本（便于判断是否已更新）
+    const verEl = document.getElementById('appVer');
+    if (verEl) verEl.textContent = ' · ' + APP_VERSION;
+    const verChip = document.getElementById('appVerChip');
+    if (verChip) verChip.textContent = APP_VERSION;
+    wireGlobalErrors();
+
     bind();
     Water.bind();   // 注册喝水模块的按钮/设置/备份等事件（缺失会导致打卡无反应）
     Home.render();
     show('home');
+
+    if (location.search.indexOf('selftest=1') >= 0) {
+      setTimeout(selfTest, 600); // 等渲染稳定后自动跑自检
+    }
 
     // 定时检查 + 跨天 + 可见性恢复
     setInterval(tick, 10 * 1000);
@@ -160,13 +226,20 @@ const App = (function () {
   }
 
   function registerSW() {
-    if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').then(reg => {
-          console.log('[PWA] ServiceWorker 注册成功', reg.scope);
-        }).catch(err => console.warn('[PWA] ServiceWorker 注册失败（需 http/https 环境）', err));
-      });
-    }
+    if (!('serviceWorker' in navigator) || location.protocol.indexOf('http') !== 0) return;
+    // Service Worker 更新接管后自动刷新一次，保证用户拿到最新版（只自动刷一次，避免死循环；自检模式不刷新）
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (location.search.indexOf('selftest=1') >= 0) return;
+      if (!sessionStorage.getItem('ww_reloaded')) {
+        sessionStorage.setItem('ww_reloaded', '1');
+        location.reload();
+      }
+    });
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').then(reg => {
+        console.log('[PWA] ServiceWorker 注册成功', reg.scope);
+      }).catch(err => console.warn('[PWA] ServiceWorker 注册失败（需 http/https 环境）', err));
+    });
   }
 
   return { boot: boot, show: show };
