@@ -1,5 +1,5 @@
 /* 工作台 PWA Service Worker：离线缓存应用外壳 */
-const VERSION = 'ww-v3';
+const VERSION = 'ww-v4';
 const SHELL = [
   './',
   './index.html',
