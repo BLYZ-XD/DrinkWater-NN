@@ -134,6 +134,7 @@ const App = (function () {
   /* ---------- 启动 ---------- */
   function boot() {
     bind();
+    Water.bind();   // 注册喝水模块的按钮/设置/备份等事件（缺失会导致打卡无反应）
     Home.render();
     show('home');
 
