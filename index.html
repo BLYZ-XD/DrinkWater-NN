@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<meta name="description" content="个人工作台 · 第一模块：每日喝水监督打卡（目标量化、闹钟提醒、统计连胜）">
+<title>工作台 · 喝水监督</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="app">
+  <!-- 顶部栏 -->
+  <header class="appbar">
+    <div class="appbar-inner">
+      <button class="brand" id="brandBtn" type="button" title="回到工作台">
+        <span class="brand-logo" aria-hidden="true">💧</span>
+        <span class="brand-text">
+          <span class="brand-title">工作台</span>
+          <span class="brand-sub">喝水监督 · 每日打卡</span>
+        </span>
+      </button>
+      <nav class="navtabs" aria-label="主导航">
+        <button class="navtab" data-view="home" type="button">工作台</button>
+        <button class="navtab" data-view="water" type="button">喝水监督</button>
+      </nav>
+      <div class="appbar-right">
+        <button class="iconbtn" id="bellBtn" type="button" title="通知设置" aria-label="通知设置">🔔</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============ 工作台首页 ============ -->
+    <section id="view-home" class="view">
+      <div class="hello">
+        <h1 id="helloTitle">你好 👋</h1>
+        <p class="muted" id="helloDate"></p>
+      </div>
+      <div class="module-grid" id="moduleGrid"><!-- 模块卡片由 JS 生成 --></div>
+      <div class="home-tip" id="homeTip"></div>
+    </section>
+
+    <!-- ============ 喝水监督模块 ============ -->
+    <section id="view-water" class="view hidden">
+      <div class="water-head">
+        <div>
+          <h2 class="module-title">💧 喝水监督</h2>
+          <p class="muted" id="waterDateStr"></p>
+        </div>
+        <div class="water-head-badges">
+          <span class="badge streak" id="streakBadge" title="连续达标天数">🔥 连胜 <b id="streakNum">0</b> 天</span>
+          <button class="iconbtn" id="waterSettingsBtn" type="button" title="喝水设置（目标/杯子/闹钟）">⚙️</button>
+        </div>
+      </div>
+
+      <!-- 今日进度卡片 -->
+      <div class="progress-card card">
+        <div class="progress-main">
+          <div class="ring-wrap">
+            <svg id="todayRing" viewBox="0 0 200 200" role="img" aria-label="今日饮水进度">
+              <defs>
+                <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#38bdf8"/>
+                  <stop offset="100%" stop-color="#2563eb"/>
+                </linearGradient>
+              </defs>
+              <circle class="ring-bg" cx="100" cy="100" r="86"/>
+              <circle class="ring-fg" id="ringFg" cx="100" cy="100" r="86"/>
+            </svg>
+            <div class="ring-center">
+              <div class="ring-pct" id="ringPct">0%</div>
+              <div class="ring-total" id="ringTotal">0 / 0 杯</div>
+            </div>
+          </div>
+          <div class="progress-side">
+            <div class="stat-remain">
+              <span class="stat-label">距离今日目标还差</span>
+              <span class="stat-remain-num" id="remainNum">8 杯</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-chip" id="statMl">0 ml</span>
+              <span class="stat-chip" id="statCups">0 杯</span>
+              <span class="stat-chip" id="statSpeed">—</span>
+            </div>
+            <div class="stat-row">
+              <button class="btn primary" id="addCupBtn" type="button">＋ 喝了一杯</button>
+              <button class="btn ghost" id="addHalfBtn" type="button">＋ 半杯</button>
+              <button class="btn ghost icon-only" id="undoBtn" type="button" title="撤销上一次记录">↩</button>
+            </div>
+            <p class="muted small" id="goalHint">目标：8 杯（每杯 250 ml）· 共 2000 ml</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 节奏建议 + 今日时间线 -->
+      <div class="grid-2">
+        <div class="card">
+          <h3 class="card-title">🗓️ 今日喝水时间线</h3>
+          <div id="timeline" class="timeline"></div>
+          <p class="muted small empty-hint" id="timelineEmpty">今天还没喝水，点上方「＋ 喝了一杯」开始记录吧～</p>
+        </div>
+        <div class="card">
+          <h3 class="card-title">⏱️ 饮水节奏建议</h3>
+          <div id="paceCard" class="pace-card"></div>
+          <h3 class="card-title sub" style="margin-top:18px">📊 近 7 天回顾</h3>
+          <canvas id="weekChart" class="chart"></canvas>
+          <div class="chart-legend">
+            <span><i class="dot bar"></i> 每日饮水量</span>
+            <span><i class="dot line"></i> 目标线</span>
+            <button class="btn ghost small" id="rangeBtn" type="button">查看近 30 天</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 闹钟响铃横幅 -->
+  <div id="alarmBanner" class="alarm-banner hidden" role="alertdialog" aria-live="assertive">
+    <div class="alarm-inner">
+      <div class="alarm-emoji">🚰</div>
+      <div class="alarm-msg">
+        <strong>到点喝水啦！</strong>
+        <span id="alarmText">该补充水分了，休息一下喝一杯吧 ☕</span>
+      </div>
+      <div class="alarm-actions">
+        <button class="btn primary small" id="alarmDrinkBtn" type="button">好，喝一杯</button>
+        <button class="btn ghost small" id="alarmSnoozeBtn" type="button">过 10 分钟再提醒</button>
+        <button class="btn ghost small" id="alarmCloseBtn" type="button">知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 设置弹层 -->
+  <div id="settingsModal" class="modal-mask hidden">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>⚙️ 喝水设置</h3>
+        <button class="iconbtn" id="modalCloseBtn" type="button" aria-label="关闭">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-group">
+          <label class="setting-label" for="goalInput">每日目标（杯数）</label>
+          <div class="stepper">
+            <button type="button" data-step="-1" aria-label="减少">−</button>
+            <input id="goalInput" type="number" min="1" max="30" inputmode="numeric">
+            <button type="button" data-step="1" aria-label="增加">＋</button>
+          </div>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label" for="cupInput">每杯容量（ml）</label>
+          <div class="stepper">
+            <button type="button" data-step="-50" aria-label="减少">−</button>
+            <input id="cupInput" type="number" min="50" max="1000" step="50" inputmode="numeric">
+            <button type="button" data-step="50" aria-label="增加">＋</button>
+          </div>
+          <p class="muted small" id="goalMlPreview"></p>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">闹钟提醒（每天到点提醒喝水）</label>
+          <div id="reminderList" class="reminder-list"></div>
+          <button class="btn ghost small full" id="addReminderBtn" type="button">＋ 添加提醒时间</button>
+          <p class="muted small">⏰ 提醒在应用打开（前台或后台驻留）时生效；把本页"添加到主屏幕"安装为 PWA 后体验最佳。</p>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">通知与声音</label>
+          <div class="switch-row">
+            <span>页面内响铃提示</span>
+            <label class="switch"><input id="soundSw" type="checkbox" checked><span class="slider"></span></label>
+          </div>
+          <div class="switch-row">
+            <span>浏览器通知</span>
+            <label class="switch"><input id="notifySw" type="checkbox"><span class="slider"></span></label>
+          </div>
+          <p class="muted small" id="notifyState"></p>
+          <button class="btn ghost small" id="grantBtn" type="button">授权浏览器通知</button>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">数据备份（换设备 / 防丢失）</label>
+          <div class="btn-row">
+            <button class="btn ghost small" id="exportBtn" type="button">⬇ 导出备份</button>
+            <button class="btn ghost small" id="importBtn" type="button">⬆ 导入备份</button>
+            <input type="file" id="importFile" accept=".json,application/json" class="hidden">
+          </div>
+          <p class="muted small">备份包含全部打卡记录、目标与闹钟设置，为一个 JSON 文件，可随时导入恢复。</p>
+        </div>
+
+        <div class="setting-group danger-zone">
+          <button class="btn danger-ghost small" id="clearTodayBtn" type="button">清空今天的记录</button>
+          <button class="btn danger-ghost small" id="resetAllBtn" type="button">重置全部数据</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastRoot" class="toast-root" aria-live="polite"></div>
+</div>
+
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/water.js"></script>
+<script src="js/home.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
