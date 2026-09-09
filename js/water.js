@@ -304,7 +304,7 @@ const Water = (function () {
         toast('✅ 通知已授权');
         Store.setCfg({ notify: true });
         $id('notifySw').checked = true;
-        sendNotify('工作台 · 喝水监督', '通知已开启，之后到点会提醒你喝水 💧');
+        sendNotify('nn健康卫士', '通知已开启，之后到点会提醒你喝水 💧');
       } else toast(r === 'denied' ? '通知被拒绝，请在浏览器设置中开启' : '当前环境不支持通知', 'warn');
       updateNotifyState();
     });
@@ -335,7 +335,7 @@ const Water = (function () {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = '喝水工作台备份_' + Store.todayStr() + '.json';
+        a.download = 'nn健康卫士备份_' + Store.todayStr() + '.json';
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -357,7 +357,7 @@ const Water = (function () {
         try {
           const obj = JSON.parse(reader.result);
           if (!obj || typeof obj !== 'object' || !obj.data || typeof obj.data !== 'object') {
-            throw new Error('不是有效的工作台备份文件');
+            throw new Error('不是有效的 nn健康卫士 备份文件');
           }
           const nCfg = Object.keys(obj.data).length;
           if (!confirm('导入将覆盖当前全部数据（' + nCfg + ' 项），确定继续吗？')) return;

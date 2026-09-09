@@ -1,7 +1,7 @@
 /* ================= 主入口：导航 / 调度 / 提醒 ================= */
 'use strict';
 
-const APP_VERSION = 'v1.3.2'; // 页面加载后显示在顶栏/右下角，用于判断是否最新代码
+const APP_VERSION = 'v1.4.0'; // 页面加载后显示在顶栏/右下角，用于判断是否最新代码
 
 const App = (function () {
   let currentView = 'home';
@@ -129,7 +129,7 @@ const App = (function () {
         if (r === 'granted') {
           Store.setCfg({ notify: true });
           toast('✅ 通知已授权并开启');
-          sendNotify('工作台 · 喝水监督', '通知已开启，到点会提醒你喝水 💧');
+          sendNotify('nn健康卫士', '通知已开启，到点会提醒你喝水 💧');
         } else {
           toast('未获得通知权限，可稍后在 ⚙️ 设置中重试', 'warn');
           Water.openSettings();
